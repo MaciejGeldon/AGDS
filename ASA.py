@@ -93,12 +93,12 @@ class ASABaseContainer:
 class ASATreeNode:
     @classmethod
     def split_from_node(cls, node):
+        node_left = cls(leaf=node.leaf)
+        node_right = cls(leaf=node.leaf)
+
         median_key = node.keys[node.t]
 
-        node_left = cls(leaf=node.leaf)
         node_left.keys = node.keys[:node.t]
-
-        node_right = cls(leaf=node.leaf)
         node_right.keys = node.keys[node.t + 1:]
 
         if not node.leaf:
@@ -121,31 +121,34 @@ class ASATreeNode:
         elif isinstance(item, (int, float)):
             self._add_value_key(item, asa_container)
 
-    def _add_value_key(self, value_key, asa_container):
-        added = False
+    def _add_first(self, key, container):
+        new_asa_elem = container.add_first(key)
+        self.keys.append(new_asa_elem)
 
-        if value_key in self.keys:
-            ind = self.keys.index(value_key)
-            self.keys[ind].count += 1
-            return
+    def _increment_counter(self, key):
+        ind = self.keys.index(key)
+        self.keys[ind].count += 1
 
-        if not self.keys:
-            new_asa_elem = asa_container.add_first(value_key)
-            self.keys.append(new_asa_elem)
-            return
-
+    def _add_new(self, key, cont):
         i = 0
         for i in range(len(self.keys)):
-            if value_key < self.keys[i]:
-                new_asa_elem = asa_container.add_neighbour(value_key, self.keys[i])
-
+            if key < self.keys[i]:
+                new_asa_elem = cont.add_neighbour(key, self.keys[i])
                 self.keys.insert(i, new_asa_elem)
-                added = True
-                break
+                return
 
-        if not added:
-            new_asa_elem = asa_container.add_neighbour(value_key, self.keys[i])
-            self.keys.append(new_asa_elem)
+        new_asa_elem = cont.add_neighbour(key, self.keys[i])
+        self.keys.append(new_asa_elem)
+
+    def _add_value_key(self, value_key, asa_container):
+        if not self.keys:
+            self._add_first(value_key, asa_container)
+
+        elif value_key in self.keys:
+            self._increment_counter(value_key)
+
+        else:
+            self._add_new(value_key, asa_container)
 
     @property
     def overflow(self):
