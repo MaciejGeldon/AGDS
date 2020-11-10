@@ -114,3 +114,12 @@ def test_generator_com_should_work():
     assert next(gen) == e_2
     assert next(gen) == e_5
     assert next(gen) == e_4
+
+
+def test_base_container_should_return_proper_length():
+    cont = ASABaseContainer()
+    elem_1 = cont.add_first(5)
+    e_2 = cont.add_neighbour(6, elem_1)
+    e_3 = cont.add_neighbour(1, elem_1)
+
+    assert len(cont) == 3

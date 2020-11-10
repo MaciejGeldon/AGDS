@@ -1,4 +1,6 @@
-from ASA import ASA, ASATreeNode, ASABaseContainer, ASABaseElem
+import pytest
+from ASA import ASA, ASABaseElem
+from statistics import median
 
 
 def test_should_add_one_key_to_asa_and_properly_initialize_dependent_data_structures():
@@ -88,3 +90,76 @@ def test_should_compose_3_level_tree_and_have_proper_structure():
     assert r_tree.children[1].keys == [10]
     assert r_tree.children[0].leaf
     assert r_tree.children[1].leaf
+
+
+def test_asa_should_calculate_proper_avr_and_sum():
+    asa = ASA()
+
+    asa.insert(2)
+    asa.insert(9)
+
+    asa.insert(1)
+    asa.insert(4)
+    asa.insert(5)
+
+    asa.insert(3)
+    asa.insert(6)
+    asa.insert(10)
+
+    assert asa.sum == 40
+    assert asa.avr == 5
+
+
+def test_asa_should_have_properly_ordered_elements():
+    asa = ASA()
+
+    asa.insert(2)
+    asa.insert(9)
+
+    asa.insert(1)
+    asa.insert(4)
+    asa.insert(5)
+
+    asa.insert(3)
+    asa.insert(6)
+    asa.insert(10)
+
+    cont = asa.asa_container
+    sorted_cont = [el for el in cont]
+    sorted_cont.sort()
+    assert sorted_cont == [el for el in cont]
+
+
+def test_should_calculate_median_1():
+    asa = ASA()
+
+    asa.insert(2)
+    asa.insert(9)
+
+    asa.insert(1)
+    asa.insert(4)
+    asa.insert(5)
+
+    asa.insert(3)
+    asa.insert(6)
+    asa.insert(10)
+
+    cont = asa.asa_container
+    l_to_comp = [elem.key for elem in cont]
+    assert median(l_to_comp) == asa.median
+
+
+@pytest.mark.parametrize(
+    "elements", [
+        [1, 1, 2], [1, 2], [5],
+        [1, 2, 2, 3, 3, 4], [5, 5, 5],
+        [1, 1, 1, 2, 2, 3, 4, 5, 6]
+    ]
+)
+def test_should_check_median_for_given_elements(elements):
+    asa = ASA()
+
+    for e in elements:
+        asa.insert(e)
+
+    assert asa.median == median(elements)

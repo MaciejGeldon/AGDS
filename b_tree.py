@@ -75,7 +75,7 @@ class BTree:
                 parent.children.insert(index, left_child)
                 parent.children.insert(index + 1, right_child)
 
-        parent.add_key(median_key)
+        parent.add_new(median_key)
 
         if parent.overflow:
             median_key_p, left_node_p, right_node_p = BTreeNode.split_from_node(parent)
@@ -83,7 +83,7 @@ class BTree:
 
     def _insert(self, key, node):
         if node.leaf:
-            node.add_key(key)
+            node.add_new(key)
             if node.overflow:
                 median_key, left_node, right_node = BTreeNode.split_from_node(node)
                 self._add_and_propagate(node, median_key, left_node, right_node)

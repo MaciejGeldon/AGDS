@@ -58,15 +58,18 @@ class ASABaseContainer:
     def __init__(self):
         self.min = None
         self.max = None
+        self.len = 0
 
-    def add_first(self, key):
+    def add_first(self, key: (int, float)):
         new_elem = ASABaseElem(key)
         self.min = new_elem
         self.max = new_elem
+        self.len += 1
         return new_elem
 
     def add_neighbour(self, key, element=None):
         new_elem = ASABaseElem(key)
+        self.len += 1
 
         if element.key > new_elem.key:
             new_elem.link_before(element, self)
@@ -89,6 +92,9 @@ class ASABaseContainer:
             yield current
             current = current.predecessor
 
+    def __len__(self):
+        return self.len
+
 
 class ASATreeNode:
     @classmethod
@@ -96,7 +102,7 @@ class ASATreeNode:
         node_left = cls(leaf=node.leaf)
         node_right = cls(leaf=node.leaf)
 
-        median_key = node.keys[node.t]
+        promoted_element = node.keys[node.t]
 
         node_left.keys = node.keys[:node.t]
         node_right.keys = node.keys[node.t + 1:]
@@ -105,7 +111,7 @@ class ASATreeNode:
             node_left.children = node.children[:node.t + 1]
             node_right.children = node.children[node.t + 1:]
 
-        return median_key, node_left, node_right
+        return promoted_element, node_left, node_right
 
     def __init__(self, leaf=False, parent=None):
         self.t = 1
@@ -114,22 +120,23 @@ class ASATreeNode:
         self.leaf = leaf
         self.parent = parent
 
-    def add_key(self, item, asa_container):
-        if isinstance(item, ASABaseElem):
-            self._add_value_key(item.key, asa_container)
+    def add_promoted(self, promoted_elem: ASABaseElem):
+        for i in range(len(self.keys)):
+            if promoted_elem < self.keys[i]:
+                self.keys.insert(i, promoted_elem)
+                return
 
-        elif isinstance(item, (int, float)):
-            self._add_value_key(item, asa_container)
+        self.keys.append(promoted_elem)
 
-    def _add_first(self, key, container):
+    def _add_first(self, key: (int, float), container: ASABaseContainer):
         new_asa_elem = container.add_first(key)
         self.keys.append(new_asa_elem)
 
-    def _increment_counter(self, key):
+    def _increment_counter(self, key: (int, float)):
         ind = self.keys.index(key)
         self.keys[ind].count += 1
 
-    def _add_new(self, key, cont):
+    def _add_new(self, key: (int, float), cont: ASABaseContainer):
         i = 0
         for i in range(len(self.keys)):
             if key < self.keys[i]:
@@ -140,15 +147,15 @@ class ASATreeNode:
         new_asa_elem = cont.add_neighbour(key, self.keys[i])
         self.keys.append(new_asa_elem)
 
-    def _add_value_key(self, value_key, asa_container):
+    def add_new(self, key: (int, float), asa_container: ASABaseContainer):
         if not self.keys:
-            self._add_first(value_key, asa_container)
+            self._add_first(key, asa_container)
 
-        elif value_key in self.keys:
-            self._increment_counter(value_key)
+        elif key in self.keys:
+            self._increment_counter(key)
 
         else:
-            self._add_new(value_key, asa_container)
+            self._add_new(key, asa_container)
 
     @property
     def overflow(self):
@@ -169,10 +176,54 @@ class ASA:
     def max(self):
         return self.asa_container.max
 
+    @property
+    def sum(self):
+        return sum(element.key * element.count for element in self.asa_container)
+
+    @property
+    def avr(self):
+        if len(self.asa_container) == 0:
+            return
+
+        return self.sum / len(self.asa_container)
+
+    @property
+    def median(self):
+        l, r = self.asa_container.min, self.asa_container.max
+
+        if l is r:
+            return l.key
+
+        return self._median([l.count, r.count], l, r)
+
+    def _median(self, p, l, r):
+        if p[0] > p[1]:
+            if l.successor is r:
+                return l.key
+            else:
+                r = r.predecessor
+                p[1] += r.count
+                return self._median(p, l, r)
+
+        elif p[0] < p[1]:
+            if l.successor is r:
+                return p.c
+            else:
+                l = l.successor
+                p[0] += l.c
+                return self._median(p, l, r)
+        else:
+            if l.successor is r:
+                return (l.key + r.key) / 2
+            else:
+                l = l.successor
+                r = r.predecessor
+                return self._median((l.count, r.count), l, r)
+
     def insert(self, key):
         if self.root is None:
             self.root = ASATreeNode(True)
-            self.root.add_key(key, self.asa_container)
+            self.root.add_new(key, self.asa_container)
             return
 
         self._insert(key, self.root)
@@ -198,7 +249,7 @@ class ASA:
         ch_index += 1
         return ch_index
 
-    def _add_new_children_to_parent(self, node, left_child, right_child):
+    def _link_children_to_parent(self, node, left_child, right_child):
         parent = node.parent
         for index in range(len(parent.children)):
             if node == parent.children[index]:
@@ -210,25 +261,25 @@ class ASA:
                 parent.children.insert(index, left_child)
                 parent.children.insert(index + 1, right_child)
 
-    def _add_and_propagate(self, node):
-        median_key, left_child, right_child = ASATreeNode.split_from_node(node)
+    def _split_and_propagate(self, node):
+        promoted_element, left_child, right_child = ASATreeNode.split_from_node(node)
         parent = node.parent
 
         if parent is None:
-            self._create_new_root(median_key, left_child, right_child)
+            self._create_new_root(promoted_element, left_child, right_child)
 
         else:
-            self._add_new_children_to_parent(node, left_child, right_child)
-            parent.add_key(median_key, self.asa_container)
+            self._link_children_to_parent(node, left_child, right_child)
+            parent.add_promoted(promoted_element)
 
             if parent.overflow:
-                self._add_and_propagate(parent)
+                self._split_and_propagate(parent)
 
     def _insert(self, key, node):
         if node.leaf:
-            node.add_key(key, self.asa_container)
+            node.add_new(key, self.asa_container)
             if node.overflow:
-                self._add_and_propagate(node)
+                self._split_and_propagate(node)
         else:
             ch_index = self._get_next_node_index(key, node)
             self._insert(key, node.children[ch_index])
@@ -249,3 +300,4 @@ if __name__ == '__main__':
     asa.insert(10)
 
     print('finihed')
+    asa.median
