@@ -177,22 +177,29 @@ class ASA:
 
         self._insert(key, self.root)
 
-    def _add_and_propagate(self, node, median_key, left_child, right_child):
+    def _create_new_root(self, median_key, left_child, right_child):
+        new_root = ASATreeNode()
+        new_root.keys.append(median_key)
+
+        left_child.parent = new_root
+        right_child.parent = new_root
+
+        new_root.children.append(left_child)
+        new_root.children.append(right_child)
+
+        self.root = new_root
+
+    def _get_next_node_index(self, key, node):
+        ch_index = 0
+        for ch_index, n_key in enumerate(node.keys):
+            if key < n_key:
+                return ch_index
+
+        ch_index += 1
+        return ch_index
+
+    def _add_new_children_to_parent(self, node, left_child, right_child):
         parent = node.parent
-        if parent is None:
-            new_root = ASATreeNode()
-            new_root.keys.append(median_key)
-
-            left_child.parent = new_root
-            right_child.parent = new_root
-
-            new_root.children.append(left_child)
-            new_root.children.append(right_child)
-
-            self.root = new_root
-            return
-
-        # search for position in parent node
         for index in range(len(parent.children)):
             if node == parent.children[index]:
                 parent.children.pop(index)
@@ -203,29 +210,27 @@ class ASA:
                 parent.children.insert(index, left_child)
                 parent.children.insert(index + 1, right_child)
 
-        parent.add_key(median_key, self.asa_container)
+    def _add_and_propagate(self, node):
+        median_key, left_child, right_child = ASATreeNode.split_from_node(node)
+        parent = node.parent
 
-        if parent.overflow:
-            median_key_p, left_node_p, right_node_p = ASATreeNode.split_from_node(parent)
-            self._add_and_propagate(parent, median_key_p, left_node_p, right_node_p)
+        if parent is None:
+            self._create_new_root(median_key, left_child, right_child)
+
+        else:
+            self._add_new_children_to_parent(node, left_child, right_child)
+            parent.add_key(median_key, self.asa_container)
+
+            if parent.overflow:
+                self._add_and_propagate(parent)
 
     def _insert(self, key, node):
         if node.leaf:
             node.add_key(key, self.asa_container)
             if node.overflow:
-                median_key, left_node, right_node = ASATreeNode.split_from_node(node)
-                self._add_and_propagate(node, median_key, left_node, right_node)
-            return
+                self._add_and_propagate(node)
         else:
-            found = False
-            for ch_index, n_key in enumerate(node.keys):
-                if key < n_key:
-                    found = True
-                    break
-
-            if not found:
-                ch_index += 1
-
+            ch_index = self._get_next_node_index(key, node)
             self._insert(key, node.children[ch_index])
 
 
