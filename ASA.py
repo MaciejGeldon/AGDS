@@ -366,7 +366,7 @@ class ASA:
 
         # here I need to implement steps 6,7,8,9 from delete
 
-    # this needs better algorithm 
+    # this needs better algorithm
     def _replace_with_leaf_candidate(self, elem, elem_node):
         predecessor, p_node = self.search(elem.predecessor)
         successor, s_node = self.search(elem.successor)
