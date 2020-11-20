@@ -138,7 +138,7 @@ def test_asa_should_have_properly_ordered_elements():
     asa.insert(6)
     asa.insert(10)
 
-    cont = asa.asa_container
+    cont = asa.sorted_d_queue
     sorted_cont = [el for el in cont]
     sorted_cont.sort()
     assert sorted_cont == [el for el in cont]
@@ -158,7 +158,7 @@ def test_should_calculate_median_1():
     asa.insert(6)
     asa.insert(10)
 
-    cont = asa.asa_container
+    cont = asa.sorted_d_queue
     l_to_comp = [elem.key for elem in cont]
     assert median(l_to_comp) == asa.median
 
@@ -245,9 +245,9 @@ def test_delete_should_work_for_existing_duplicated_key(elements, delete_key, co
     for key in elements:
         asa.insert(key)
 
-    deleted = asa.delete(delete_key)
-    assert isinstance(deleted, ASABaseElem)
-    assert deleted.count == count
+    del_key, _ = asa.search(delete_key)
+    assert asa.delete(delete_key)
+    assert del_key.count == count
 
 
 def test_delete_should_return_false_if_key_for_delete_not_found():
@@ -263,14 +263,13 @@ def test_delete_should_remove_key_from_node_with_two_keys_without_rebalancing():
     for i in [2, 3, 5, 9]:
         asa.insert(i)
 
-    key = asa.delete(5)
-    assert isinstance(key, ASABaseElem)
+    assert asa.delete(5)
 
     found, node = asa.search(5)
 
     assert found is False and node is None
 
-    assert [e.key for e in asa.asa_container] == [2, 3, 9]
+    assert [e.key for e in asa.sorted_d_queue] == [2, 3, 9]
 
     found, node = asa.search(9)
     assert found
@@ -284,14 +283,13 @@ def test_delete_should_remove_key_from_node_with_two_keys_without_rebalancing_v2
     for i in [2, 3, 5, 7, 8, 9, 10, 11]:
         asa.insert(i)
 
-    key = asa.delete(10)
-    assert isinstance(key, ASABaseElem)
+    assert asa.delete(10)
 
     found, node = asa.search(10)
 
     assert found is False and node is None
 
-    assert [e.key for e in asa.asa_container] == [2, 3, 5, 7, 8, 9, 11]
+    assert [e.key for e in asa.sorted_d_queue] == [2, 3, 5, 7, 8, 9, 11]
 
     found, node = asa.search(11)
     assert found
@@ -316,7 +314,7 @@ def test_delete_should_replace_deleted_node_key_with_leaf_key_when_proper_leaf_k
 
     assert len(node.keys) == 2
 
-    assert asa.delete(7) is False
+    assert asa.delete(7)
     assert elem in asa.root.keys
 
     elem, node = asa.search(node_elem)
@@ -327,7 +325,7 @@ def test_delete_should_replace_deleted_node_key_with_leaf_key_when_proper_leaf_k
     'elem,node_elem',
     [(0.1, 0), (1.5, 2)]
 )
-def test_delete_should_handle_one_level_tree_case(elem, node_elem):
+def test_delete_should_handle_deleting_non_leaf_in_one_level_tree_case(elem, node_elem):
     asa = ASA()
     for i in range(3):
         asa.insert(i)
@@ -338,7 +336,7 @@ def test_delete_should_handle_one_level_tree_case(elem, node_elem):
 
     assert len(node.keys) == 2
 
-    assert asa.delete(1) is False
+    assert asa.delete(1)
     assert elem in asa.root.keys
 
     elem, node = asa.search(node_elem)
@@ -346,23 +344,25 @@ def test_delete_should_handle_one_level_tree_case(elem, node_elem):
 
 
 @pytest.mark.parametrize(
-    'add, delete, empty_value',
+    'add, delete, empty_value, ch_index',
     [
-        (0.1, 2, 1),
-        (1.1, 0, 1),
-        (1.1, 4, 3),
-        (3.5, 2, 3)
+        (0.1, 2, 1, 1),
+        (1.1, 0, 1, 0),
+        (1.1, 4, 3, 2),
+        (3.5, 2, 3, 1)
     ]
 )
-def test_delete_should_handle_filing_empty_leaf_for_one_level_tree(add, delete, empty_value):
+def test_delete_should_handle_filing_empty_leaf_for_one_level_tree(
+        add, delete, empty_value, ch_index
+):
     asa = ASA()
     for i in range(5):
         asa.insert(i)
 
     asa.insert(add)
 
-    modified_node = asa.delete(delete)
-
+    assert asa.delete(delete)
+    modified_node = asa.root.children[ch_index]
     assert empty_value == modified_node.keys[0].key
 
     # check if structure is preserved
@@ -384,21 +384,23 @@ def test_delete_should_handle_filing_empty_leaf_for_one_level_tree(add, delete, 
 
 
 @pytest.mark.parametrize(
-    'add, delete, empty_value',
+    'add, delete, empty_value, ch_index',
     [
-        (0.1, 2, 1),
-        (1.1, 0, 1),
+        (0.1, 2, 1, 1),
+        (1.1, 0, 1, 0),
     ]
 )
-def test_delete_should_handle_filing_empty_leaf_for_one_level_tree_and_two_children(add, delete, empty_value):
+def test_delete_should_handle_filing_empty_leaf_for_one_level_tree_and_two_children(
+        add, delete, empty_value, ch_index
+):
     asa = ASA()
     for i in range(3):
         asa.insert(i)
 
     asa.insert(add)
 
-    modified_node = asa.delete(delete)
-
+    assert asa.delete(delete)
+    modified_node = asa.root.children[ch_index]
     assert empty_value == modified_node.keys[0].key
 
     # check if structure is preserved
@@ -416,3 +418,72 @@ def test_delete_should_handle_filing_empty_leaf_for_one_level_tree_and_two_child
     assert ch_1.keys[0].key < ch_2.keys[0].key
     assert len(ch_1.keys) == len(ch_2.keys) == 1
 
+
+@pytest.mark.parametrize(
+    'delete_key, parent_key, ch_index',
+    [
+        (0, 3, 0),
+        (2, 3, 0),
+        (4, 1, 1)
+    ]
+)
+def test_should_delete_empty_leaf_when_parent_got_two_elements(
+        delete_key, parent_key, ch_index
+):
+    asa = ASA()
+    for i in range(5):
+        asa.insert(i)
+
+    assert asa.delete(delete_key)
+
+    # check if structure is preserved
+    values = [i for i in range(5) if i != delete_key]
+    asa_values = [el.key for el in asa.sorted_d_queue]
+
+    assert values == asa_values
+
+    _, parent = asa.search(parent_key)
+
+    assert parent == asa.root
+    assert len(parent.keys) == 1
+
+    p_keys = parent.keys
+    ch_1, ch_2 = parent.children
+
+    assert ch_1.keys[0].key < p_keys[0].key < ch_2.keys[0].key
+
+    assert ch_1.keys[0].key < ch_2.keys[0].key
+
+    child_with_two_keys = parent.children[ch_index]
+    assert len(child_with_two_keys.keys) == 2
+    assert len(parent.children[int(bool(1 - ch_index))].keys) == 1
+
+
+# I need to finish this when I add rebalance steps 8,9
+# @pytest.mark.parametrize(
+#     'delete_key, parent_key',
+#     [
+#         (0, 2),
+#         (1, 2),
+#     ]
+# )
+# def test_should_delete_empty_leaf_when_parent_got_two_elements(
+#         delete_key, parent_key
+# ):
+#     asa = ASA()
+#     for i in range(3):
+#         asa.insert(i)
+#
+#     assert asa.delete(delete_key)
+#
+#     # check if structure is preserved
+#     values = [i for i in range(3) if i != delete_key]
+#     asa_values = [el.key for el in asa.asa_container]
+#
+#     assert values == asa_values
+#
+#     _, parent = asa.search(parent_key)
+#
+#     assert asa.root == parent
+#     assert len(parent.keys) == 2
+#     assert parent.children == []

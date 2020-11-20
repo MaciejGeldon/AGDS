@@ -1,8 +1,8 @@
-from ASA import ASABaseContainer
+from ASA import SortedDQueue
 
 
 def test_create_and_link_should_add_new_created_base_element_at_the_beginning():
-    cont = ASABaseContainer()
+    cont = SortedDQueue()
     cont.add_first(5)
 
     cont.add_neighbour(1, cont.min)
@@ -17,7 +17,7 @@ def test_create_and_link_should_add_new_created_base_element_at_the_beginning():
 
 
 def test_should_create_new_max_element():
-    cont = ASABaseContainer()
+    cont = SortedDQueue()
 
     second = cont.add_first(5)
     first = cont.add_neighbour(1, second)
@@ -33,7 +33,7 @@ def test_should_create_new_max_element():
 
 
 def test_min_max_behaviour_on_larger_input():
-    cont = ASABaseContainer()
+    cont = SortedDQueue()
     elem_1 = cont.add_first(5)
 
     e_2 = cont.add_neighbour(6, elem_1)
@@ -56,7 +56,7 @@ def test_min_max_behaviour_on_larger_input():
 
 
 def test_reverse_ordering_properties():
-    cont = ASABaseContainer()
+    cont = SortedDQueue()
     elem_1 = cont.add_first(5)
 
     e_2 = cont.add_neighbour(6, elem_1)
@@ -76,7 +76,7 @@ def test_reverse_ordering_properties():
 
 
 def test_asa_base_class_should_be_iterable():
-    cont = ASABaseContainer()
+    cont = SortedDQueue()
     elem_1 = cont.add_first(5)
 
     e_2 = cont.add_neighbour(6, elem_1)
@@ -88,7 +88,7 @@ def test_asa_base_class_should_be_iterable():
 
 
 def test_asa_base_class_should_be_iterable_in_reverse():
-    cont = ASABaseContainer()
+    cont = SortedDQueue()
     elem_1 = cont.add_first(5)
 
     e_2 = cont.add_neighbour(6, elem_1)
@@ -100,7 +100,7 @@ def test_asa_base_class_should_be_iterable_in_reverse():
 
 
 def test_generator_com_should_work():
-    cont = ASABaseContainer()
+    cont = SortedDQueue()
     elem_1 = cont.add_first(5)
 
     e_2 = cont.add_neighbour(6, elem_1)
@@ -117,7 +117,7 @@ def test_generator_com_should_work():
 
 
 def test_base_container_should_return_proper_length():
-    cont = ASABaseContainer()
+    cont = SortedDQueue()
     elem_1 = cont.add_first(5)
     e_2 = cont.add_neighbour(6, elem_1)
     e_3 = cont.add_neighbour(1, elem_1)

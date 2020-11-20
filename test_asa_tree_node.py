@@ -1,8 +1,8 @@
-from ASA import ASABaseElem, ASATreeNode, ASABaseContainer
+from ASA import ASABaseElem, ASATreeNode, SortedDQueue
 
 
 def test_asa_node_should_add_first_key_and_initialize_container():
-    con = ASABaseContainer()
+    con = SortedDQueue()
     tree_node = ASATreeNode()
     key = 2
 
@@ -15,7 +15,7 @@ def test_asa_node_should_add_first_key_and_initialize_container():
 
 
 def test_add_key_should_accept_int_and_asa_base_elements_as_arguments():
-    con = ASABaseContainer()
+    con = SortedDQueue()
     tree_node = ASATreeNode()
     asa_base_elem = ASABaseElem(5)
 
@@ -29,7 +29,7 @@ def test_add_key_should_accept_int_and_asa_base_elements_as_arguments():
 
 
 def test_tree_node_should_add_duplicates():
-    con = ASABaseContainer()
+    con = SortedDQueue()
     tree_node = ASATreeNode()
 
     tree_node.add_new(2, con)
@@ -42,7 +42,7 @@ def test_tree_node_should_add_duplicates():
 
 
 def test_tree_node_should_add_elements_in_proper_order():
-    con = ASABaseContainer()
+    con = SortedDQueue()
     tree_node = ASATreeNode()
 
     tree_node.add_new(5, con)
@@ -56,7 +56,7 @@ def test_tree_node_should_add_elements_in_proper_order():
 
 
 def test_to_ong_node_should_overflow():
-    con = ASABaseContainer()
+    con = SortedDQueue()
     tree_node = ASATreeNode()
 
     tree_node.add_new(5, con)
@@ -67,7 +67,7 @@ def test_to_ong_node_should_overflow():
 
 
 def test_split_from_node_should_return_median_key_and_correctly_divided_keys_in_case_of_leaf_node():
-    con = ASABaseContainer()
+    con = SortedDQueue()
     tree_node = ASATreeNode()
 
     tree_node.add_new(5, con)
@@ -87,7 +87,7 @@ def test_split_from_node_should_return_median_key_and_correctly_divided_keys_in_
 
 
 def test_should_split_keys_and_children_properly_when_node_is_not_leaf():
-    con = ASABaseContainer()
+    con = SortedDQueue()
     tree_node = ASATreeNode()
 
     ch_1 = ASATreeNode()

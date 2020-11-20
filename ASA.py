@@ -54,18 +54,13 @@ class ASABaseElem:
         elem.predecessor = self
 
     def delete(self, element):
-        if element.successor and element.predecessor:
-            element.predecessor.successor = element.successor
+        if element.successor:
             element.successor.predecessor = element.predecessor
-
-        elif element.successor:
-            element.successor.predecessor = element.predecessor
-
-        else:
+        if element.predecessor:
             element.predecessor.successor = element.successor
 
 
-class ASABaseContainer:
+class SortedDQueue:
     def __init__(self):
         self.min = None
         self.max = None
@@ -78,7 +73,7 @@ class ASABaseContainer:
         self.len += 1
         return new_elem
 
-    def add_neighbour(self, key, element=None):
+    def add_neighbour(self, key, element):
         new_elem = ASABaseElem(key)
         self.len += 1
 
@@ -152,34 +147,26 @@ class ASATreeNode:
 
         self.keys.append(promoted_elem)
 
-    def _add_first(self, key: (int, float), container: ASABaseContainer):
-        new_asa_elem = container.add_first(key)
-        self.keys.append(new_asa_elem)
-
-    def _increment_counter(self, key: (int, float)):
-        ind = self.keys.index(key)
-        self.keys[ind].count += 1
-
-    def _add_new(self, key: (int, float), cont: ASABaseContainer):
-        i = 0
-        for i in range(len(self.keys)):
-            if key < self.keys[i]:
-                new_asa_elem = cont.add_neighbour(key, self.keys[i])
-                self.keys.insert(i, new_asa_elem)
-                return
-
-        new_asa_elem = cont.add_neighbour(key, self.keys[i])
-        self.keys.append(new_asa_elem)
-
-    def add_new(self, key: (int, float), asa_container: ASABaseContainer):
+    def add_new(self, key: (int, float), asa_container: SortedDQueue):
         if not self.keys:
-            self._add_first(key, asa_container)
+            self.keys.append(asa_container.add_first(key))
 
         elif key in self.keys:
-            self._increment_counter(key)
+            ind = self.keys.index(key)
+            self.keys[ind].count += 1
 
         else:
-            self._add_new(key, asa_container)
+            i = 0
+            for i in range(len(self.keys)):
+                if key < self.keys[i]:
+                    self.keys.insert(
+                        i, asa_container.add_neighbour(key, self.keys[i])
+                    )
+                    return
+
+            self.keys.append(
+                asa_container.add_neighbour(key, self.keys[i])
+            )
 
     @property
     def overflow(self):
@@ -189,63 +176,63 @@ class ASATreeNode:
 class ASA:
     def __init__(self):
         self.root = None
-        self.asa_container = ASABaseContainer()
+        self.sorted_d_queue = SortedDQueue()
         self.t = 1
 
     @property
     def min(self):
-        return self.asa_container.min
+        return self.sorted_d_queue.min
 
     @property
     def max(self):
-        return self.asa_container.max
+        return self.sorted_d_queue.max
 
     @property
     def sum(self):
-        return sum(element.key * element.count for element in self.asa_container)
+        return sum(element.key * element.count for element in self.sorted_d_queue)
 
     @property
     def avr(self):
-        if len(self.asa_container) == 0:
+        if len(self.sorted_d_queue) == 0:
             return
 
-        return self.sum / len(self.asa_container)
+        return self.sum / len(self.sorted_d_queue)
 
     @property
     def median(self):
-        l, r = self.asa_container.min, self.asa_container.max
+        left, right = self.sorted_d_queue.min, self.sorted_d_queue.max
 
-        if l is r:
-            return l.key
+        if left is right:
+            return left.key
 
-        return self._median([l.count, r.count], l, r)
+        return self._median(left.count - right.count, left, right)
 
-    def _median(self, p, l, r):
-        if p[0] > p[1]:
-            if l.successor is r:
-                return l.key
+    def _median(self, p, left, right):
+        if p > 0:
+            if left.successor is right:
+                return left.key
             else:
-                r = r.predecessor
-                p[1] += r.count
-                return self._median(p, l, r)
+                right = right.predecessor
+                p -= right.count
+                return self._median(p, left, right)
 
-        elif p[0] < p[1]:
-            if l.successor is r:
-                return p.c
+        elif p < 0:
+            if left.successor is right:
+                return right.key
             else:
-                l = l.successor
-                p[0] += l.c
-                return self._median(p, l, r)
+                left = left.successor
+                p += left.count
+                return self._median(p, left, right)
         else:
-            if l.successor is r:
-                return (l.key + r.key) / 2
+            if left.successor is right:
+                return (left.key + right.key) / 2
             else:
-                if l.successor == r.predecessor:
-                    return l.successor
+                if left.successor == right.predecessor:
+                    return left.successor
 
-                l = l.successor
-                r = r.predecessor
-                return self._median((l.count, r.count), l, r)
+                left = left.successor
+                right = right.predecessor
+                return self._median(left.count - right.count, left, right)
 
     def search(self, key):
         if self.root is None:
@@ -271,14 +258,14 @@ class ASA:
     def insert(self, key):
         if self.root is None:
             self.root = ASATreeNode(True)
-            self.root.add_new(key, self.asa_container)
+            self.root.add_new(key, self.sorted_d_queue)
             return
 
         self._insert(key, self.root)
 
     def _insert(self, key, node):
         if node.leaf:
-            node.add_new(key, self.asa_container)
+            node.add_new(key, self.sorted_d_queue)
             if node.overflow:
                 self._split_and_propagate(node)
         else:
@@ -344,47 +331,56 @@ class ASA:
 
         elif key.count > 1:
             key.count -= 1
-            return key
+            return True
 
         elif node.leaf:
             if len(node.keys) > 1:
                 node.keys.remove(key)
-                self.asa_container.delete(key)
+                self.sorted_d_queue.delete(key)
                 return key
             else:
                 node.keys.remove(key)
                 empty_leaf = node
+                self.sorted_d_queue.delete(key)
         else:
             empty_leaf = self._replace_with_leaf_candidate(key, node)
+            # Case replace operation found leaf with more than one element and remove is finished
             if not empty_leaf:
-                return False
+                return True
 
         if empty_leaf:
-            sibling_shift_resolution = self._try_siblings(empty_leaf)
-            if isinstance(sibling_shift_resolution, ASATreeNode):
-                return sibling_shift_resolution
+            if self._try_siblings(empty_leaf):
+                return True
 
-        # here I need to implement steps 6,7,8,9 from delete
+            if self._parent_resolution(empty_leaf):
+                return True
 
-    # this needs better algorithm
+        self._collapse(empty_leaf)
+        # here I need to implement steps 8,9 from delete
+
     def _replace_with_leaf_candidate(self, elem, elem_node):
+        # assumption successor and predecessor of non leaf node is a leaf node
         predecessor, p_node = self.search(elem.predecessor)
         successor, s_node = self.search(elem.successor)
 
-        if len(p_node.keys) > 1:
+        def replace_from_predecessor():
             predecessor.successor = elem.successor
             elem.successor.predecessor = predecessor
-            elem_node.keys.insert(elem_node.keys.index(elem), predecessor)
-            elem_node.keys.remove(elem)
+            elem_node.keys[elem_node.keys.index(elem)] = predecessor
             p_node.keys.remove(predecessor)
+
+        def replace_from_successor():
+            successor.predecessor = elem.predecessor
+            elem.predecessor.successor = successor
+            elem_node.keys[elem_node.keys.index(elem)] = successor
+            s_node.keys.remove(successor)
+
+        if len(p_node.keys) > 1:
+            replace_from_predecessor()
             return False
 
         if len(s_node.keys) > 1:
-            successor.predecessor = elem.predecessor
-            elem.predecessor.successor = successor
-            elem_node.keys.insert(elem_node.keys.index(elem), successor)
-            s_node.keys.remove(successor)
-            elem_node.keys.remove(elem)
+            replace_from_successor()
             return False
 
         p_node_par = p_node.parent
@@ -392,25 +388,13 @@ class ASA:
 
         if p_node_par is not elem_node:
             if p_node_par.keys >= s_node_par.keys:
-                predecessor.successor = elem.successor
-                elem.successor.predecessor = predecessor
-                elem_node.insert(elem_node.keys.index(elem), predecessor)
-                elem_node.keys.remove(elem)
-                p_node.remove(predecessor)
+                replace_from_predecessor()
                 return p_node
             else:
-                successor.predecessor = elem.predecessor
-                elem.predecessor.successor = successor
-                elem_node.insert(elem_node.keys.index(elem), predecessor)
-                s_node.keys.remove(successor)
-                elem_node.keys.remove(elem)
+                replace_from_successor()
                 return s_node
 
-        predecessor.successor = elem.successor
-        elem.successor.predecessor = predecessor
-        elem_node.insert(elem_node.keys.index(elem), predecessor)
-        elem_node.keys.remove(elem)
-        p_node.remove(predecessor)
+        replace_from_predecessor()
         return p_node
 
     def _try_siblings(self, empty_leaf):
@@ -427,13 +411,48 @@ class ASA:
             elif empty_leaf == ch:
                 empty_index = i
 
-        if abs(c_ind - empty_index) == 1:
+        if candidate and abs(c_ind - empty_index) == 1:
             ch_draw_ind = int(bool(c_ind - empty_index < 0))
             parent.keys.insert(c_ind, candidate.keys.pop(ch_draw_ind))
             empty_leaf.keys.append(parent.keys.pop(empty_index))
-            return empty_leaf
+            return True
 
         return False
+
+    def _parent_resolution(self, e_leaf):
+        parent = e_leaf.parent
+        if len(parent.keys) == 2:
+            e_ind = None
+            for i in range(3):
+                if parent.children[i] == e_leaf:
+                    e_ind = i
+
+            if e_ind == 1:
+                parent.children[0].keys.append(parent.keys.pop(0))
+            elif e_ind == 0:
+                parent.children[1].keys.insert(0, parent.keys.pop(0))
+            else:
+                parent.children[1].keys.append(parent.keys.pop(1))
+
+            parent.children.remove(e_leaf)
+            return True
+        return False
+
+    def _collapse(self, e_leaf):
+        parent = e_leaf.parent
+
+        e_ind = None
+        for i, ch in enumerate(parent.children):
+            if parent.children[i] == e_leaf:
+                e_ind = i
+
+        sibling_index = int(bool(1 - e_ind))
+        if all([
+                len(parent.keys) == 1,
+                len(parent.children[sibling_index].keys) == 1
+        ]):
+            parent.keys.insert(sibling_index, parent.children[sibling_index].keys[0])
+            parent.children = []
 
 
 if __name__ == '__main__':
