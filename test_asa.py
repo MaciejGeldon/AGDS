@@ -3,6 +3,23 @@ from ASA import ASA, ASABaseElem
 from statistics import median
 
 
+@pytest.fixture()
+def two_level_tree():
+    asa = ASA()
+
+    asa.insert(2)
+    asa.insert(9)
+
+    asa.insert(1)
+    asa.insert(4)
+    asa.insert(5)
+
+    asa.insert(3)
+    asa.insert(6)
+    asa.insert(10)
+    return asa
+
+
 def test_should_add_one_key_to_asa_and_properly_initialize_dependent_data_structures():
     asa = ASA()
     asa.insert(2)
@@ -18,8 +35,8 @@ def test_should_add_one_key_to_asa_and_properly_initialize_dependent_data_struct
 
 def test_one_level_asa_tree():
     asa = ASA()
-    asa.insert(2)
-    asa.insert(5)
+    for i in [2, 5]:
+        asa.insert(i)
 
     assert asa.min == 2
     assert asa.max == 5
@@ -31,9 +48,8 @@ def test_one_level_asa_tree():
 def test_overflow_should_split_tree_building_two_level_tree():
     asa = ASA()
 
-    asa.insert(5)
-    asa.insert(10)
-    asa.insert(2)
+    for i in [5, 10, 2]:
+        asa.insert(i)
 
     assert asa.min == 2
     assert asa.max == 10
@@ -49,19 +65,8 @@ def test_overflow_should_split_tree_building_two_level_tree():
     assert asa.root.children[1].leaf
 
 
-def test_should_compose_3_level_tree_and_have_proper_structure():
-    asa = ASA()
-
-    asa.insert(2)
-    asa.insert(9)
-
-    asa.insert(1)
-    asa.insert(4)
-    asa.insert(5)
-
-    asa.insert(3)
-    asa.insert(6)
-    asa.insert(10)
+def test_should_compose_3_level_tree_and_have_proper_structure(two_level_tree):
+    asa = two_level_tree
 
     assert asa.min == 1
     assert asa.max == 10
@@ -106,37 +111,15 @@ def test_asa_should_have_proper_parent_element_structure():
     assert asa.root.keys == [7]
 
 
-def test_asa_should_calculate_proper_avr_and_sum():
-    asa = ASA()
-
-    asa.insert(2)
-    asa.insert(9)
-
-    asa.insert(1)
-    asa.insert(4)
-    asa.insert(5)
-
-    asa.insert(3)
-    asa.insert(6)
-    asa.insert(10)
+def test_asa_should_calculate_proper_avr_and_sum(two_level_tree):
+    asa = two_level_tree
 
     assert asa.sum == 40
     assert asa.avr == 5
 
 
-def test_asa_should_have_properly_ordered_elements():
-    asa = ASA()
-
-    asa.insert(2)
-    asa.insert(9)
-
-    asa.insert(1)
-    asa.insert(4)
-    asa.insert(5)
-
-    asa.insert(3)
-    asa.insert(6)
-    asa.insert(10)
+def test_asa_should_have_properly_ordered_elements(two_level_tree):
+    asa = two_level_tree
 
     cont = asa.sorted_d_queue
     sorted_cont = [el for el in cont]
@@ -144,19 +127,8 @@ def test_asa_should_have_properly_ordered_elements():
     assert sorted_cont == [el for el in cont]
 
 
-def test_should_calculate_median_1():
-    asa = ASA()
-
-    asa.insert(2)
-    asa.insert(9)
-
-    asa.insert(1)
-    asa.insert(4)
-    asa.insert(5)
-
-    asa.insert(3)
-    asa.insert(6)
-    asa.insert(10)
+def test_should_calculate_median_1(two_level_tree):
+    asa = two_level_tree
 
     cont = asa.sorted_d_queue
     l_to_comp = [elem.key for elem in cont]

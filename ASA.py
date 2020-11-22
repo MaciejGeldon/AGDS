@@ -446,7 +446,7 @@ class ASA:
             if parent.children[i] == e_leaf:
                 e_ind = i
 
-        sibling_index = int(bool(1 - e_ind))
+        sibling_index = 1 - e_ind
         if all([
                 len(parent.keys) == 1,
                 len(parent.children[sibling_index].keys) == 1
