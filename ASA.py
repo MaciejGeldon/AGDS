@@ -355,8 +355,15 @@ class ASA:
             if self._parent_resolution(empty_leaf):
                 return True
 
-        self._collapse(empty_leaf)
-        # here I need to implement steps 8,9 from delete
+        empty_leaf = self._collapse(empty_leaf)
+        if empty_leaf.parent is None:
+            # we reach root nothing to do here
+            return True
+
+        if self._rebalance_from_sibling(empty_leaf):
+            return True
+
+        # here I need to implement steps 9 from delete
 
     def _replace_with_leaf_candidate(self, elem, elem_node):
         # assumption successor and predecessor of non leaf node is a leaf node
@@ -453,6 +460,46 @@ class ASA:
         ]):
             parent.keys.insert(sibling_index, parent.children[sibling_index].keys[0])
             parent.children = []
+        return parent
+
+    def _rebalance_from_sibling(self, e_leaf):
+        parent = e_leaf.parent
+
+        c_ind = None
+        candidate = None
+        empty_index = None
+
+        for i, ch in enumerate(parent.children):
+            if len(ch.keys) > 1 and e_leaf != ch:
+                c_ind = i
+                candidate = ch
+            elif e_leaf == ch:
+                empty_index = i
+
+        if candidate and abs(c_ind - empty_index) == 1:
+            ch_draw_ind = int(bool(c_ind - empty_index < 0))
+            parent.keys.insert(c_ind, candidate.keys.pop(ch_draw_ind))
+
+            new_leaf = ASATreeNode(parent=parent)
+            new_leaf.keys.append(parent.keys.pop(empty_index))
+            parent.children[empty_index] = new_leaf
+
+            e_leaf.parent = new_leaf
+
+            # left from empty
+            if c_ind - empty_index < 0:
+                new_leaf.children.append(candidate.children.pop(-1))
+                new_leaf.children.append(e_leaf)
+
+            # right from empty
+            else:
+                new_leaf.children.append(e_leaf)
+                new_leaf.children.append(candidate.children.pop(0))
+
+            return True
+
+        # no candidate found
+        return False
 
 
 if __name__ == '__main__':
@@ -470,4 +517,3 @@ if __name__ == '__main__':
     asa.insert(10)
 
     print('finihed')
-    asa.median
