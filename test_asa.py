@@ -3,6 +3,14 @@ from ASA import ASA, ASABaseElem
 from statistics import median
 
 
+def check_structure(root_1, root_2):
+    assert root_1.keys == root_2.keys
+    assert len(root_1.children) == len(root_2.children)
+
+    for ch_1, ch_2 in zip(root_1.children, root_2.children):
+        check_structure(ch_1, ch_2)
+
+
 @pytest.fixture()
 def two_level_tree():
     asa = ASA()
@@ -527,13 +535,6 @@ def test_should_rebalance_when_one_of_sibling_in_three_children_parent_got_two_k
 
     assert asa.delete(to_delete)
 
-    def check_structure(root_1, root_2):
-        assert root_1.keys == root_2.keys
-        assert len(root_1.children) == len(root_2.children)
-
-        for ch_1, ch_2 in zip(root_1.children, root_2.children):
-            check_structure(ch_1, ch_2)
-
     # integrity check build tree without deleted element
     elements = list(range(7)) + to_add
     elements.remove(to_delete)
@@ -544,3 +545,81 @@ def test_should_rebalance_when_one_of_sibling_in_three_children_parent_got_two_k
         asa_after_delete.insert(el)
 
     check_structure(asa.root, asa_after_delete.root)
+
+
+@pytest.mark.parametrize(
+    "to_delete, root_keys, insertion_order",
+    [
+        (4, [1, 3], [0, 1, 2, 3, 5, 6]),
+        (5, [1, 3], [0, 1, 2, 3, 4, 6]),
+        (6, [1, 3], [0, 1, 2, 3, 4, 5]),
+
+        (0, [3, 5], [1, 3, 4, 5, 6, 2]),
+        (1, [3, 5], [0, 3, 4, 5, 6, 2]),
+        (2, [3, 5], [0, 3, 4, 5, 6, 1]),
+
+    ]
+)
+def test_should_replace_root_when_tree_will_shrink(to_delete, root_keys, insertion_order):
+    asa = ASA()
+    for i in range(7):
+        asa.insert(i)
+
+    assert asa.delete(to_delete)
+    assert asa.root.keys == root_keys
+
+    asa_after_delete = ASA()
+    for el in insertion_order:
+        asa_after_delete.insert(el)
+
+    check_structure(asa.root, asa_after_delete.root)
+
+
+@pytest.mark.parametrize(
+    "to_delete, root_keys, insertion_order",
+    [
+        (12, [3, 7], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14]),
+        (14, [3, 7], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]),
+
+        (10, [3, 7], [0, 1, 2, 3, 4, 5, 6, 7, 8, 11, 12, 13, 14, 9]),
+        (8, [3, 7], [0, 1, 2, 3, 4, 5, 6, 7, 9, 11, 12, 13, 14, 10]),
+
+        (0, [7, 11], [2, 3, 4, 7, 9, 8, 10, 11, 12, 13, 14, 5, 6, 1]),
+        (1, [7, 11], [0, 3, 4, 7, 9, 8, 10, 11, 12, 13, 14, 5, 6, 2]),
+
+    ]
+)
+def test_asa_delete_should_handle_recursive_rebalancing(to_delete, root_keys, insertion_order):
+    asa = ASA()
+    for i in range(15):
+        asa.insert(i)
+
+    assert asa.delete(to_delete)
+    assert asa.root.keys == root_keys
+
+    asa_after_delete = ASA()
+    for el in insertion_order:
+        asa_after_delete.insert(el)
+
+    check_structure(asa.root, asa_after_delete.root)
+
+
+@pytest.mark.parametrize(
+    "del_all_but",
+    [
+        0, 2, 5
+    ]
+)
+def test_delete_sanity_when_deleting_everything_from_builded_key_except_from_one_element(del_all_but):
+    asa = ASA()
+    for i in range(7):
+        asa.insert(i)
+
+    delete = [i for i in range(7) if i != del_all_but]
+
+    for dd in delete:
+        asa.delete(dd)
+
+    assert len(asa.root.keys) == 1
+    assert asa.root.keys == [del_all_but]
+    assert asa.root.children == []

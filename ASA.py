@@ -355,15 +355,13 @@ class ASA:
             if self._parent_resolution(empty_leaf):
                 return True
 
-        empty_leaf = self._collapse(empty_leaf)
-        if empty_leaf.parent is None:
+        collapsed_leaf = self._collapse(empty_leaf)
+        if collapsed_leaf.parent is None:
             # we reach root nothing to do here
             return True
 
-        if self._rebalance_from_sibling(empty_leaf):
-            return True
-
-        # here I need to implement steps 9 from delete
+        self._rebalance(collapsed_leaf)
+        return True
 
     def _replace_with_leaf_candidate(self, elem, elem_node):
         # assumption successor and predecessor of non leaf node is a leaf node
@@ -460,20 +458,21 @@ class ASA:
         ]):
             parent.keys.insert(sibling_index, parent.children[sibling_index].keys[0])
             parent.children = []
+            parent.leaf = True
         return parent
 
-    def _rebalance_from_sibling(self, e_leaf):
-        parent = e_leaf.parent
+    def _rebalance_from_sibling(self, c_subtree):
+        parent = c_subtree.parent
 
         c_ind = None
         candidate = None
         empty_index = None
 
         for i, ch in enumerate(parent.children):
-            if len(ch.keys) > 1 and e_leaf != ch:
+            if len(ch.keys) > 1 and c_subtree != ch:
                 c_ind = i
                 candidate = ch
-            elif e_leaf == ch:
+            elif c_subtree == ch:
                 empty_index = i
 
         if candidate and abs(c_ind - empty_index) == 1:
@@ -484,22 +483,74 @@ class ASA:
             new_leaf.keys.append(parent.keys.pop(empty_index))
             parent.children[empty_index] = new_leaf
 
-            e_leaf.parent = new_leaf
+            c_subtree.parent = new_leaf
 
             # left from empty
             if c_ind - empty_index < 0:
                 new_leaf.children.append(candidate.children.pop(-1))
-                new_leaf.children.append(e_leaf)
+                new_leaf.children.append(c_subtree)
 
             # right from empty
             else:
-                new_leaf.children.append(e_leaf)
+                new_leaf.children.append(c_subtree)
                 new_leaf.children.append(candidate.children.pop(0))
 
             return True
 
         # no candidate found
         return False
+
+    def _join_with_sibling(self, c_subtree):
+        parent = c_subtree.parent
+
+        empty_candidate = {0: (1, 0), 1: (0, 0), 2: (1, 1)}
+        reduced_index = None
+
+        for i, ch in enumerate(parent.children):
+            if c_subtree == ch:
+                reduced_index = i
+
+        c_sibling_ind, parent_key_ind = empty_candidate[reduced_index]
+        ch_insert_ind = int(bool(reduced_index - c_sibling_ind > 0))
+        closest_sibling = parent.children[c_sibling_ind]
+
+        closest_sibling.keys.insert(ch_insert_ind, parent.keys.pop(parent_key_ind))
+        if ch_insert_ind > 0:
+            closest_sibling.children.append(c_subtree)
+        else:
+            closest_sibling.children.insert(0, c_subtree)
+
+        if len(parent.keys) > 0:
+            return True
+
+        grandparent = parent.parent
+        if grandparent is None:
+            self.root = closest_sibling
+            closest_sibling.parent = None
+            c_subtree.parent = closest_sibling
+            return False
+
+        p_ind = None
+        for i, par in enumerate(grandparent.children):
+            if par is parent:
+                p_ind = i
+
+        grandparent.children[p_ind] = closest_sibling
+        closest_sibling.parent = grandparent
+        del parent
+
+        return closest_sibling
+
+    def _rebalance(self, collapsed_subtree):
+        if self._rebalance_from_sibling(collapsed_subtree):
+            return True
+
+        # simple case when one rebalancing leeds to root change
+        unbalanced_node = self._join_with_sibling(collapsed_subtree)
+        if not unbalanced_node:
+            return True
+
+        self._rebalance(unbalanced_node)
 
 
 if __name__ == '__main__':
