@@ -161,7 +161,7 @@ class ASADrawer:
 
             curr = suc
 
-    def draw_asa(self, asa):
+    def draw_asa(self, asa, save=True):
         root = asa.root
         curr = root
 
@@ -177,8 +177,73 @@ class ASADrawer:
 
         self.draw_tree(draw, root, middle_up, h)
         self.draw_d_queue(draw, asa)
-        img.save(f'test_{self.draw_number}.jpg', format='JPEG')
-        self.draw_number += 1
+
+        if save is True:
+            img.save(f'test_{self.draw_number}.jpg', format='JPEG')
+            self.draw_number += 1
+
+        return img
+
+    def draw_insertion_evolution(self, to_insert, name='insertion'):
+        asa = ASA()
+        evolution = []
+        save_kwargs = {
+            "format": "GIF",
+            "save_all": True,
+            "duration": 1000,
+            "loop": False,
+        }
+
+        added = []
+
+        for el in to_insert:
+            asa.insert(el)
+            img = self.draw_asa(asa, save=False)
+            draw = ImageDraw.Draw(img)
+            a_font = ImageFont.truetype(self.font_path, 30)
+            draw.text((50, 50), f'Prev: {added}', fill='black', font=a_font)
+
+            el_font = ImageFont.truetype(self.font_path, 50)
+            draw.text((50, 120), f'Current {el}', fill='red', font=el_font)
+
+            added.append(el)
+            evolution.append(img)
+
+        evolution[0].save(f'{name}.gif', append_images=evolution[1:], **save_kwargs)
+
+    def draw_successive_deletion(self, starting_inserts, consecutive_deletions, name='deletion'):
+        asa = ASA()
+        for el in starting_inserts:
+            asa.insert(el)
+
+        save_kwargs = {
+            "format": "GIF",
+            "save_all": True,
+            "duration": 1000,
+            "loop": False,
+        }
+
+        img = self.draw_asa(asa, save=False)
+        evolution = [img]
+
+        deleted = []
+
+        for key in consecutive_deletions:
+            asa.delete(key)
+            img = self.draw_asa(asa, save=False)
+            draw = ImageDraw.Draw(img)
+            a_font = ImageFont.truetype(self.font_path, 30)
+            draw.text((30, 20), f'Start: {list(starting_inserts)}', fill='black', font=a_font)
+
+            a_font = ImageFont.truetype(self.font_path, 30)
+            draw.text((30, 50), f'Deleted: {deleted}', fill='black', font=a_font)
+
+            el_font = ImageFont.truetype(self.font_path, 50)
+            draw.text((50, 120), f'Current {key}', fill='red', font=el_font)
+            evolution.append(img)
+            deleted.append(key)
+
+        evolution[0].save(f'{name}.gif', append_images=evolution[1:], **save_kwargs)
 
 
 if __name__ == '__main__':
@@ -186,6 +251,13 @@ if __name__ == '__main__':
 
     font_path = os.getenv('FONT_PATH')
     drawer = ASADrawer(font_path, (2800, 700))
+
+    ev = [1, 1, 1, 1, 3, 5, 2, 7, 4, 8, 9, 4.5, 4.2, 4.3, 4.4, 10, 11, 4.5, 4.6, 4.7, 4.8, 6.9, 9.1, 13, 3.2]
+    drawer.draw_insertion_evolution(ev)
+
+    deletions = [i for i in range(7) if i != 5]
+    drawer.draw_successive_deletion(range(7), deletions)
+
     asa = ASA()
     asa.insert(1)
     asa.insert(1)
