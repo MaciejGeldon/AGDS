@@ -1,8 +1,10 @@
 import os
+from decimal import Decimal
+
 from PIL import Image, ImageDraw
 from PIL import ImageFont
 
-from ASA import ASA
+from ASA.ASA_tree_and_d_queue import ASA
 from dotenv import load_dotenv
 
 

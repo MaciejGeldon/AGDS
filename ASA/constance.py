@@ -1,0 +1,1 @@
+ACCEPTED_TYPES_FOR_COMPARISON = (int, float, str)

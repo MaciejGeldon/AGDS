@@ -1,4 +1,4 @@
-from ASA import ASABaseElem, ASATreeNode, SortedDQueue
+from ASA.ASA_tree_and_d_queue import ASABaseElem, ASATreeNode, SortedDQueue
 
 
 def test_asa_node_should_add_first_key_and_initialize_container():

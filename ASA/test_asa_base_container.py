@@ -1,4 +1,4 @@
-from ASA import SortedDQueue
+from ASA.ASA_tree_and_d_queue import SortedDQueue, ASABaseElem
 
 
 def test_create_and_link_should_add_new_created_base_element_at_the_beginning():

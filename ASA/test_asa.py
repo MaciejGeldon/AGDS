@@ -1,5 +1,5 @@
 import pytest
-from ASA import ASA, ASABaseElem
+from ASA.ASA_tree_and_d_queue import ASA, ASABaseElem
 from statistics import median
 
 
@@ -117,6 +117,20 @@ def test_asa_should_have_proper_parent_element_structure():
 
     assert grandparent == asa.root
     assert asa.root.keys == [7]
+
+
+def test_insert_should_add_counter_for_keys_in_not_leaf_nodes():
+    test_data = [5.1, 4.9, 4.7, 4.6, 5.0, 5.4, 4.6, 5.0, 4.4, 4.9, 5.4]
+    asa = ASA()
+    for f_val in test_data:
+        asa.insert(f_val)
+
+    results = [
+        (4.400, 1), (4.600, 2), (4.700, 1), (4.900, 2), (5.000, 2), (5.100, 1), (5.400, 2)
+    ]
+
+    for ind, val in enumerate(asa.sorted_d_queue):
+        assert results[ind][0] == val.key and results[ind][1] == val.count
 
 
 def test_asa_should_calculate_proper_avr_and_sum(two_level_tree):
@@ -623,3 +637,21 @@ def test_delete_sanity_when_deleting_everything_from_builded_key_except_from_one
     assert len(asa.root.keys) == 1
     assert asa.root.keys == [del_all_but]
     assert asa.root.children == []
+
+
+@pytest.mark.parametrize(
+    'insert, root, min_, max_',
+    [
+        (['a'], 'a', 'a', 'a'),
+        (['a', 'b', 'c'], 'b', 'a', 'c'),
+        (['param_1', 'param_2', 'param_3'], 'param_2', 'param_1', 'param_3')
+    ]
+)
+def test_asa_with_strings(insert, root, min_, max_):
+    asa = ASA()
+    for el in insert:
+        asa.insert(el)
+
+    assert asa.root.keys[0].key == root
+    assert asa.min.key == min_
+    assert asa.max.key == max_

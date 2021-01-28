@@ -1,3 +1,8 @@
+from decimal import Decimal
+
+ACCEPTED_TYPES_FOR_COMPARISON = (int, float, str)
+
+
 class ASABaseElem:
     def __init__(self, key, count=1):
         self.key = key
@@ -11,7 +16,7 @@ class ASABaseElem:
     def __eq__(self, other):
         if isinstance(other, self.__class__):
             return self.key == other.key
-        if isinstance(other, (int, float)):
+        if isinstance(other, ACCEPTED_TYPES_FOR_COMPARISON):
             return self.key == other
 
         return False
@@ -19,15 +24,22 @@ class ASABaseElem:
     def __lt__(self, other):
         if isinstance(other, self.__class__):
             return self.key < other.key
-        if isinstance(other, (int, float)):
+        if isinstance(other, ACCEPTED_TYPES_FOR_COMPARISON):
             return self.key < other
         raise TypeError(f'< not supported between instances of {self.__class__.__name__} and {type(other).__name__}')
 
     def __gt__(self, other):
         if isinstance(other, self.__class__):
             return self.key > other.key
-        if isinstance(other, (int, float)):
+        if isinstance(other, ACCEPTED_TYPES_FOR_COMPARISON):
             return self.key > other
+        raise TypeError(f'< not supported between instances of {self.__class__.__name__} and {type(other).__name__}')
+
+    def __ge__(self, other):
+        if isinstance(other, self.__class__):
+            return self.key >= other.key
+        if isinstance(other, ACCEPTED_TYPES_FOR_COMPARISON):
+            return self.key >= other
         raise TypeError(f'< not supported between instances of {self.__class__.__name__} and {type(other).__name__}')
 
     def __repr__(self):
@@ -66,7 +78,7 @@ class SortedDQueue:
         self.max = None
         self.len = 0
 
-    def add_first(self, key: (int, float)):
+    def add_first(self, key: (int, Decimal)):
         new_elem = ASABaseElem(key)
         self.min = new_elem
         self.max = new_elem
@@ -109,6 +121,9 @@ class SortedDQueue:
     def __len__(self):
         return self.len
 
+    def __repr__(self):
+        return str([repr(el) for el in self])
+
 
 class ASATreeNode:
     @classmethod
@@ -148,25 +163,28 @@ class ASATreeNode:
         self.keys.append(promoted_elem)
 
     def add_new(self, key: (int, float), asa_container: SortedDQueue):
+
         if not self.keys:
-            self.keys.append(asa_container.add_first(key))
+            new_elem = asa_container.add_first(key)
+            self.keys.append(new_elem)
+            return new_elem
 
         elif key in self.keys:
             ind = self.keys.index(key)
             self.keys[ind].count += 1
+            return self.keys[ind]
 
         else:
             i = 0
             for i in range(len(self.keys)):
                 if key < self.keys[i]:
-                    self.keys.insert(
-                        i, asa_container.add_neighbour(key, self.keys[i])
-                    )
-                    return
+                    added = asa_container.add_neighbour(key, self.keys[i])
+                    self.keys.insert(i, added)
+                    return added
 
-            self.keys.append(
-                asa_container.add_neighbour(key, self.keys[i])
-            )
+            added = asa_container.add_neighbour(key, self.keys[i])
+            self.keys.append(added)
+            return added
 
     @property
     def overflow(self):
@@ -201,6 +219,9 @@ class ASA:
     @property
     def median(self):
         left, right = self.sorted_d_queue.min, self.sorted_d_queue.max
+
+        if left is None and right is None:
+            return None
 
         if left is right:
             return left.key
@@ -258,19 +279,23 @@ class ASA:
     def insert(self, key):
         if self.root is None:
             self.root = ASATreeNode(True)
-            self.root.add_new(key, self.sorted_d_queue)
-            return
+            return self.root.add_new(key, self.sorted_d_queue)
 
-        self._insert(key, self.root)
+        return self._insert(key, self.root)
 
     def _insert(self, key, node):
         if node.leaf:
-            node.add_new(key, self.sorted_d_queue)
+            added = node.add_new(key, self.sorted_d_queue)
             if node.overflow:
                 self._split_and_propagate(node)
+            return added
+        elif key in node.keys:
+            ind = node.keys.index(key)
+            node.keys[ind].count += 1
+            return node.keys[ind]
         else:
             ch_index = self._get_next_node_index(key, node)
-            self._insert(key, node.children[ch_index])
+            return self._insert(key, node.children[ch_index])
 
     def _create_new_root(self, median_key, left_child, right_child):
         new_root = ASATreeNode()
@@ -556,15 +581,15 @@ class ASA:
 if __name__ == '__main__':
     asa = ASA()
 
-    asa.insert(2)
-    asa.insert(9)
+    in_1 = asa.insert(2)
+    in_2 = asa.insert(9)
 
-    asa.insert(1)
-    asa.insert(4)
-    asa.insert(5)
+    in_3 = asa.insert(1)
+    in_4 = asa.insert(4)
+    in_5 = asa.insert(5)
 
-    asa.insert(3)
-    asa.insert(6)
-    asa.insert(10)
+    in_6 = asa.insert(3)
+    in_7 = asa.insert(6)
+    in_8 = asa.insert(10)
 
     print('finihed')
